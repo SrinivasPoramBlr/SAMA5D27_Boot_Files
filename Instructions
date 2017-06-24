@@ -1,0 +1,186 @@
+1. Setup microSD card
+###########################
+
+
+export DISK=/dev/mmcblk0
+
+#######################################
+
+2. Erase partition table/labels on microSD card:
+
+##################################
+
+sudo dd if=/dev/zero of=${DISK} bs=1M count=50
+
+###################################
+
+3.Create Partition Layout:
+
+type the following in the terminal
+
+####################################
+
+sudo sfdisk --version 
+
+#######################################
+
+4.then result comes as shown below:
+
+######################################
+
+sfdisk from util-linux 2.27.1
+
+######################################
+5.if sfdisk >= 2.26.x
+
+#####################################
+
+sudo sfdisk ${DISK} <<-__EOF__
+1M,48M,0xE,*
+,,,-
+__EOF__
+
+#######################################
+
+5.if sfdisk <= 2.25.x
+
+#######################################
+
+sudo sfdisk --unit M ${DISK} <<-__EOF__
+1,48,0xE,*
+,,,-
+__EOF__
+
+#######################################
+
+6. Format Partition:
+
+for: DISK=/dev/mmcblk0
+########################################
+
+sudo mkfs.vfat -F 16 -n BOOT ${DISK}p1
+sudo mkfs.ext4 -L rootfs ${DISK}p2
+
+########################################
+  
+6. for: DISK=/dev/sdX
+########################################
+
+sudo mkfs.vfat -F 16 -n BOOT ${DISK}1
+sudo mkfs.ext4 -L rootfs ${DISK}2
+
+######################################
+
+7.Mount Partition:
+
+########################################
+
+sudo mkdir -p /media/boot/
+sudo mkdir -p /media/rootfs/
+
+########################################
+  
+7.1. for: DISK=/dev/mmcblk0
+
+########################################
+
+sudo mount ${DISK}p1 /media/boot/
+sudo mount ${DISK}p2 /media/rootfs/
+ 
+#########################################
+ 
+7.1. for: DISK=/dev/sdX
+
+##########################################
+
+sudo mount ${DISK}1 /media/boot/
+sudo mount ${DISK}2 /media/rootfs/
+
+########################################
+
+8. Install Bootloader
+
+Copy u-boot binaries to the boot partition
+
+#############################################
+
+sudo cp -v ../boot.bin /media/boot/BOOT.BIN
+sudo cp -v ../u-boot.img /media/boot/
+
+############################################
+9. Install Kernel and Root File System
+
+take the kernel_version from kernel_version file present and then issue commands as below in terminal :
+
+#############################################
+
+export kernel_version=4.9.29-sama5-armv7-r2
+
+############################################
+
+10. Copy Root File System
+
+############################################
+
+
+sudo tar xfvp ./*-*-*-armhf-*/armhf-rootfs-*.tar -C /media/rootfs/
+sync
+sudo chown root:root /media/rootfs/
+sudo chmod 755 /media/rootfs/
+
+#############################################
+
+11. Copy Kernel Image
+
+Kernel Image:
+
+##########################################
+
+sudo cp -v ./zImage /media/boot/zImage
+
+##########################################
+
+12. Copy Kernel Device Tree Binaries
+
+##########################################
+
+sudo mkdir -p /media/boot/dtbs/
+sudo cp -v ./at91-sama5d2-xplained.dtb /media/boot/dtbs/
+
+##########################################
+
+13. Copy Kernel Modules
+
+############################################
+
+sudo tar xfv ./${kernel_version}-modules.tar.gz -C /media/rootfs/
+
+###############################################
+
+14. File Systems Table (/etc/fstab)
+/etc/fstab
+
+################################################
+
+sudo sh -c "echo '/dev/mmcblk1p2  /  auto  errors=remount-ro  0  1' >> /media/rootfs/etc/fstab"
+sudo sh -c "echo '/dev/mmcblk1p1  /boot/uboot  auto  defaults  0  2' >> /media/rootfs/etc/fstab"
+
+#################################################
+
+15. Remove microSD/SD card
+
+#################################################
+
+sync
+sudo umount /media/boot
+sudo umount /media/rootfs
+
+
+################################################
+
+16. after removing the SD card from Laptop, Place it SoM board and power it on, then it will boot to debian
+
+login: debian
+pwd: temppwd
+
+###############################################
